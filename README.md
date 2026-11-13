@@ -90,7 +90,7 @@ python -m streamlit run app.py
 
 Open [the local workspace](http://127.0.0.1:8501) and use the FAIR sample or upload your own PDF. To skip the MiniLM download, leave out `python -m sample_data.setup_embeddings` and choose **Offline lexical** in the sidebar.
 
-The model pull downloads about 1.9 GB. Allow several GB of free disk space for packages, caches and the Ollama runtime. Dependencies and model weights need network access during setup. PDF processing, embedding, search, generation and export run locally afterward.
+The model pull downloads about 1.9 GB. Allow several GB of free disk space for packages, caches and the Ollama runtime. Dependencies and model weights need network access during setup. PDF processing, embedding, search, generation and export run locally afterward. Set `PAPERPILOT_OLLAMA_PORT` if Ollama is not on port 11434.
 
 ## Try these requests
 
@@ -101,17 +101,6 @@ The model pull downloads about 1.9 GB. Allow several GB of free disk space for p
 5. "Generate ten viva questions with easy answers."
 
 Open a viva question, choose **Practise your answer**, type a response and select **Get feedback**. Then use **Download session report** in the sidebar.
-
-## Configuration
-
-| Setting | Default | Purpose |
-|---|---|---|
-| `PAPERPILOT_OLLAMA_PORT` | `11434` | Port of the local Ollama server |
-| `PAPERPILOT_MAX_UPLOAD_MB` | `20` | Upload limit. Match `server.maxUploadSize` in `.streamlit/config.toml` |
-| `HF_HOME` | `~/.cache/huggingface` | Where the MiniLM weights live. Use the same value at setup and launch |
-| `OLLAMA_NO_CLOUD` | unset | Set to `1` before starting Ollama to disable its cloud features |
-
-Ollama and Streamlit listen on loopback. PaperPilot uses a local Ollama endpoint, omits cloud model tags from the selector, and never downloads a model by itself. You can choose another installed instruction model in the sidebar.
 
 ## Project website
 
@@ -139,29 +128,6 @@ The first command runs the offline suite: PDF parsing and limits, Chroma mechani
 | Agentic RAG | The agent chooses `retrieve`, `reuse_context` or `clarify` (`core/workflow.py`) |
 | Intent detection and routing | A router classifies the request and selects the task agent |
 | Vector database | ChromaDB with cosine similarity (`core/vector_store.py`) |
-
-## Troubleshooting
-
-- **Ollama unavailable.** Check `ollama list`, then click **Refresh connection**. Open the Ollama desktop app or start `ollama serve`.
-- **Ollama stalls during GPU initialization.** For a CPU-only NVIDIA workaround on Windows, exit the Ollama desktop app, set `$env:CUDA_VISIBLE_DEVICES='-1'` and `$env:OLLAMA_VULKAN='0'` in PowerShell, then run `ollama serve` in that terminal.
-- **No local model listed.** Run the model pull yourself, then refresh. The app performs no automatic model downloads.
-- **Embedding model unavailable.** Run `python -m sample_data.setup_embeddings` using the same `HF_HOME`, or choose the offline lexical index.
-- **Unreadable PDF.** For a scan, OCR it first and upload the text-based copy. For a locked paper, upload an unlocked copy.
-- **Bad structured response.** Use a focused request or a quick action, or try a stronger installed model.
-- **No evidence.** Try a named section or term and inspect the retrieved excerpts.
-- **Tests fail with a `langchain` import error.** Use the project's virtual environment. A global Python with a newer `langchain` conflicts with the pinned `langchain-core`.
-
-## Limitations
-
-PaperPilot is a study aid. It tells you where its answers come from, but it cannot guarantee they are right.
-
-- **One paper at a time.** The index and conversation history are temporary. Download the session report to keep a record.
-- **Text, not figures.** Figures, tables, formulas and complex reading order can lose meaning when text is extracted. A scanned PDF needs OCR first.
-- **Search can still miss.** Hybrid search reduces missed passages but does not remove them. Name a section or a term if nothing useful turns up.
-- **A page is not proof.** Page validation confirms a page was given to the model, not that the answer is correct. Read the excerpts.
-- **Model-dependent.** Speed and structured-output reliability depend on the model and the computer. A 3B model can still produce weak answers.
-- **Feedback is advisory.** Viva scores are the local model's judgment, not a grade.
-- **Size limits.** 20 MB, 150 pages and one million characters per paper.
 
 ## Documentation
 

@@ -1,14 +1,19 @@
 from pathlib import Path
+from ui.workspace_view import hero, workspace_controls, workspace_results
+import json
 
 import streamlit as st
 
 from config import DEFAULT_MODEL, MAX_REQUEST_CHARS, MAX_UPLOAD_MB, ROOT
 from core.llm import installed_models, local_model
+from core.lexical import LexicalEmbedder
 from core.pdf_processor import document_id, extract_paper
-from core.vector_store import PaperIndex, load_embedder
+from core.practice import MAX_ANSWER_CHARS, evaluate_answer
+from core.vector_store import PaperIndex, embedding_weights_present, load_embedder
 from core.workflow import AGENT_NAMES, run_request
 from prompts.templates import AGENTS, RETRIEVAL, ROUTER
 from utils.pptx_export import build_pptx
+from utils.report import build_report
 
 st.set_page_config(page_title="PaperPilot AI", page_icon="📄", layout="wide")
 
@@ -18,6 +23,13 @@ ACTIONS = {
     "slides": ("Generate Slides", "Create a presentation based on this paper."),
     "viva": ("Prepare for Viva", "Generate practice questions and suggested answers."),
 }
+
+
+INDEX_MODES = {
+    "Semantic · MiniLM": "semantic",
+    "Offline lexical · no download": "lexical",
+}
+INDEX_LABELS = {"semantic": "semantic MiniLM index", "lexical": "offline lexical index"}
 
 
 @st.cache_resource(show_spinner=False)
@@ -42,6 +54,7 @@ def clear_conversation():
     st.session_state.history = []
     st.session_state.exports = {}
     st.session_state.activity = []
+    st.session_state.practice = {}
     st.session_state.run_error = ""
     if st.session_state.index is not None and st.session_state.index.paper:
         note(f"Paper ready · {len(st.session_state.index.paper.chunks)} indexed chunks")
@@ -73,6 +86,40 @@ def cite(pages):
 def text(value):
     # Plain text avoids rendering model-supplied links or remote images.
     st.text(value)
+
+
+def practice_panel(position, number, item):
+    """Type an answer to a viva question and get advisory feedback from the local model."""
+    key = f"{position}:{number}"
+    with st.expander("Practise your answer"):
+        with st.form(f"practice_{position}_{number}", border=False):
+            mine = st.text_area(
+                "Your answer", key=f"mine_{key}", max_chars=MAX_ANSWER_CHARS, height=110,
+                placeholder="Answer as you would in the viva, then ask for feedback.",
+            )
+            ask = st.form_submit_button("Get feedback", disabled=not model)
+        if ask:
+            try:
+                with st.spinner(f"Checking your answer with {model}…"):
+                    st.session_state.practice[key] = evaluate_answer(
+                        local_model(model), st.session_state.index,
+                        item.question, mine, item.answer, note,
+                    )
+            except ValueError as exc:
+                st.warning(str(exc))
+            except Exception:
+                st.warning("The local request failed. Check Ollama and ChromaDB, then try again.")
+        attempt = st.session_state.practice.get(key)
+        if attempt:
+            verdict = attempt.evaluation
+            first, second, third = st.columns(3)
+            first.metric("Correctness", f"{verdict.correctness}/5")
+            second.metric("Depth", f"{verdict.depth}/5")
+            third.metric("Clarity", f"{verdict.clarity}/5")
+            text(verdict.feedback)
+            text("Next step · " + verdict.next_step)
+            cite(verdict.source_pages)
+            st.caption("Advisory judgment from the local model, not a grade. Check the cited pages.")
 
 
 def display_result(turn, position, filename):
@@ -133,6 +180,7 @@ def display_result(turn, position, filename):
                     with st.expander("Reveal suggested answer"):
                         text(item.answer)
                         cite(item.source_pages)
+                practice_panel(position, number, item)
 
     if turn.evidence:
         with st.expander("Paper evidence"):
@@ -156,7 +204,10 @@ def teaching_panel(turn):
         if turn.decision:
             text(f"Model retrieval choice · {turn.decision.action} · {turn.decision.reason}")
         cite([chunk["page"] for chunk in turn.evidence])
-        st.caption("Few-shot routing and retrieval · zero-shot task prompts · JSON schema and Pydantic validation")
+        st.caption(
+            "Few-shot routing and retrieval · zero-shot task prompts · JSON schema and Pydantic validation · "
+            "reflection: an invalid answer is returned to the model once with the validation errors as feedback"
+        )
         st.code("model = llm.bind(format=schema_json, **options)\nchain = prompt | model | StrOutputParser()\nraw = chain.invoke(prompt_values)\nresult = schema.model_validate_json(raw)", language="python")
         for label, template in (
             ("Intent Router · few-shot", ROUTER),
@@ -173,7 +224,7 @@ def teaching_panel(turn):
 for key, value in {
     "index": None, "history": [], "exports": {}, "activity": [],
     "failed_digest": None, "upload_error": "", "upload_key": 0,
-    "run_error": "",
+    "run_error": "", "practice": {}, "index_mode": None,
 }.items():
     if key not in st.session_state:
         st.session_state[key] = value
@@ -197,6 +248,19 @@ with st.sidebar:
     if st.button("Refresh connection"):
         model_status.clear()
         st.rerun()
+
+    semantic_ready = embedding_weights_present()
+    index_choice = st.selectbox(
+        "Search index", list(INDEX_MODES), index=0 if semantic_ready else 1,
+        help="Semantic uses the MiniLM weights from setup. Offline lexical needs no download and matches shared words.",
+    )
+    index_mode = INDEX_MODES[index_choice]
+    if index_mode == "semantic" and not semantic_ready:
+        st.caption("MiniLM is not set up. Run python -m sample_data.setup_embeddings, or choose the offline index.")
+    if st.session_state.index_mode not in (None, index_mode):
+        clear_paper()
+        st.session_state.index = None
+    st.session_state.index_mode = index_mode
 
     st.divider()
     upload = st.file_uploader(
@@ -226,11 +290,12 @@ with st.sidebar:
                     paper = extract_paper(raw, filename)
                     if index is None:
                         try:
-                            index = PaperIndex(cached_embedder())
+                            embedder = cached_embedder() if index_mode == "semantic" else LexicalEmbedder()
+                            index = PaperIndex(embedder, index_mode)
                         except Exception as exc:
                             raise ValueError(
                                 "The embedding model could not be loaded. Run "
-                                "python -m sample_data.setup_embeddings and retry."
+                                "python -m sample_data.setup_embeddings, or choose the offline lexical index, and retry."
                             ) from exc
                         st.session_state.index = index
                     try:
@@ -238,7 +303,7 @@ with st.sidebar:
                     except Exception as exc:
                         raise ValueError("ChromaDB indexing failed. Retry this paper or use a smaller PDF.") from exc
                     note(f"PDF processed · {paper.page_count} pages")
-                    note(f"Indexed {len(paper.chunks)} chunks in ChromaDB")
+                    note(f"Indexed {len(paper.chunks)} chunks in ChromaDB · {INDEX_LABELS[index.mode]}")
             except ValueError as exc:
                 st.session_state.failed_digest = digest
                 st.session_state.upload_error = str(exc)
@@ -252,45 +317,28 @@ with st.sidebar:
     if paper:
         st.success("Paper indexed")
         text(filename)
-        st.caption(f"{paper.page_count} pages · {len(paper.chunks)} chunks")
+        st.caption(f"{paper.page_count} pages · {len(paper.chunks)} chunks · {INDEX_LABELS[index.mode]}")
     st.button("Clear conversation", on_click=clear_conversation, disabled=not st.session_state.history, width="stretch")
     st.button("Reset document", on_click=reset_upload, disabled=raw is None, width="stretch")
+    if st.session_state.history or st.session_state.practice:
+        st.download_button(
+            "Download session report",
+            build_report(
+                filename=filename, page_count=paper.page_count if paper else 0,
+                chunk_count=len(paper.chunks) if paper else 0,
+                index_label=INDEX_LABELS.get(index.mode, "") if index is not None else "",
+                model=model or "", history=st.session_state.history,
+                attempts=list(st.session_state.practice.values()), activity=st.session_state.activity,
+            ),
+            file_name=f"{Path(filename).stem or 'paperpilot'}-session-report.md",
+            mime="text/markdown", width="stretch", on_click="ignore", key="session_report",
+        )
 
-st.title("Research workspace", anchor=False)
-st.caption("Turn a research paper into a summary, concept explanations, slides, and viva practice.")
-if not paper:
-    st.info("Upload a text-based research PDF from the sidebar, or use the included FAIR sample paper.")
-else:
-    with st.container(border=True):
-        st.subheader(filename, anchor=False)
-        st.caption(f"{paper.page_count} PDF pages · {len(paper.chunks)} indexed chunks")
-
-with st.expander("Slide and viva settings"):
-    left, middle, right = st.columns(3)
-    slide_count = left.number_input("Slides", 5, 10, 6)
-    question_count = middle.number_input("Viva questions", 1, 15, 10)
-    difficulty = right.selectbox("Viva difficulty", ["mixed", "easy", "intermediate", "advanced"])
-    st.caption("Settings apply to quick actions. Include preferred counts or difficulty in custom requests.")
-
-request = ""
-preset = None
-for column, (intent, (label, prompt)) in zip(st.columns(4), ACTIONS.items(), strict=True):
-    if column.button(label, disabled=not paper or not model, width="stretch"):
-        request = prompt
-        preset = {
-            "intent": intent, "scope": "broad", "revision": False, "slide_count": slide_count,
-            "question_count": question_count, "difficulty": difficulty,
-            "reason": "Selected quick action", "clarification": "",
-        }
-
-with st.form("ask", clear_on_submit=True):
-    user_input = st.text_input(
-        "Ask anything about your research paper", max_chars=MAX_REQUEST_CHARS,
-        placeholder="What is the paper’s main contribution?",
-    )
-    submitted = st.form_submit_button("Send request", disabled=not model, type="primary")
-if submitted:
-    request = user_input
+ui_dir = ROOT / "ui"
+workspace = json.loads((ui_dir / "workspace.json").read_text(encoding="utf-8"))
+st.html(ui_dir / "workspace.css")
+hero(workspace)
+request, submitted, preset = workspace_controls(paper, model, filename, MAX_REQUEST_CHARS, ACTIONS)
 
 if (request or submitted) and model:
     st.session_state.run_error = ""
@@ -330,15 +378,7 @@ if latest and not latest.answer:
                 cite([chunk["page"]])
                 text(chunk["text"])
 
-tabs = st.tabs(["Summary", "Concepts", "Slides", "Viva"])
-for tab, intent in zip(tabs, ACTIONS, strict=True):
-    with tab:
-        matching = [(pos, turn) for pos, turn in enumerate(history) if turn.intent == intent and turn.answer]
-        if matching:
-            position, turn = matching[-1]
-            display_result(turn, position, filename)
-        else:
-            st.caption(f"Use {ACTIONS[intent][0]} or submit a related request to populate this view.")
+workspace_results(history, ACTIONS, display_result, filename)
 
 with st.expander("Agent Activity", expanded=bool(st.session_state.activity)):
     if not st.session_state.activity:

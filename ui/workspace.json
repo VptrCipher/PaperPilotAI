@@ -1,0 +1,7 @@
+{
+  "generator": "DesignForge",
+  "target": "streamlit",
+  "title": "Make sense of your paper.",
+  "intro": "Read a paper, understand the method, and prepare your slides and viva from the same source.",
+  "composition": "ember-assistant"
+}

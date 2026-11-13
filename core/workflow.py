@@ -80,8 +80,11 @@ def validate_answer(answer: Answer, route: Route, pages: set[int]):
                 item.text = "This information was not found in the retrieved excerpts."
     elif route.intent == "concepts":
         items = answer.data.concepts
-        if any((item.kind == "paper") != bool(item.source_pages) for item in items):
-            raise ValueError("Cite paper concepts and leave background concepts uncited.")
+        for item in items:
+            # A cited concept is a paper concept; an uncited one is background. Repair rather than fail.
+            item.kind = "paper" if item.source_pages else "background"
+        if not any(item.source_pages for item in items):
+            raise ValueError("Cite at least one paper concept, or return insufficient.")
     elif route.intent == "slides":
         items = answer.data.slides
         if len(items) != route.slide_count or any(not item.source_pages for item in items):
@@ -185,6 +188,16 @@ def run_request(
             route.intent = "clarification"
             route.reason = "Comparison has no named referent"
             route.clarification = "Which methods, results, or concepts would you like me to compare?"
+        if (
+            last and not route.revision and route.intent in {"summary", "concepts"}
+            and re.search(
+                r"\b(?:make|keep|rewrite|shorten|simplify|condense)\b[^.?!]{0,40}\b(?:previous|last|above|earlier|that|it)\b"
+                r"|\b(?:shorter|simpler|more concise)\b",
+                request, re.IGNORECASE,
+            )
+        ):
+            route.revision = True
+            log("Follow-up phrasing recognised as a revision of the last result")
         if route.revision and last and route.intent in {"summary", "concepts"}:
             route.intent = last.intent
         if route.intent == "viva" and route.difficulty == "mixed":

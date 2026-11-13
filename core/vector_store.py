@@ -8,12 +8,15 @@ os.environ["DO_NOT_TRACK"] = "1"
 os.environ["HF_HUB_OFFLINE"] = "1"
 
 import chromadb
+import numpy as np
 from chromadb.config import Settings
 
 from config import EMBEDDING_DIR
+from core.lexical import LexicalEmbedder
 from core.pdf_processor import Paper
 
 ENCODE_LOCK = Lock()
+RRF_K = 60  # reciprocal-rank-fusion constant
 
 
 def embedding_weights_present() -> bool:
@@ -76,20 +79,45 @@ class PaperIndex:
             raise
         self.paper = paper
         self.collection = collection
+        # Hybrid retrieval: exact-word vectors held beside the semantic ones, used to rescue passages whose
+        # meaning match is weak but whose wording matches the question.
+        self._words = LexicalEmbedder() if self.mode == "semantic" else None
+        self._word_vectors = self._words.encode([c["text"] for c in paper.chunks]) if self._words else None
         return True
 
     def search(self, query: str, limit: int = 5) -> list[dict]:
         if self.collection is None:
             raise ValueError("Index a PDF before searching.")
+        pool = min(max(limit * 3, limit), self.collection.count())
         results = self.collection.query(
             query_embeddings=self._vectors([query]),
-            n_results=min(limit, self.collection.count()),
+            n_results=pool,
             include=["documents", "metadatas", "distances"],
         )
-        return [
+        hits = [
             dict(meta, id=chunk_id, text=content, distance=distance)
             for chunk_id, content, meta, distance in zip(
                 results["ids"][0], results["documents"][0], results["metadatas"][0],
                 results["distances"][0], strict=True,
             )
         ]
+        if self._words is None:
+            return hits[:limit]
+        # Reciprocal rank fusion of the semantic ranking and the exact-word ranking.
+        scores = self._word_vectors @ self._words.encode([query])[0]
+        chunks = self.paper.chunks
+        word_rank = [chunks[i] for i in np.argsort(-scores)[:pool] if scores[i] > 0]
+        fused: dict[str, float] = {}
+        for ranking in (hits, word_rank):
+            for position, hit in enumerate(ranking):
+                fused[hit["id"]] = fused.get(hit["id"], 0.0) + 1.0 / (RRF_K + position + 1)
+        by_id = {hit["id"]: hit for hit in hits}
+        ordered = sorted(fused, key=fused.get, reverse=True)[:limit]
+        out = []
+        for chunk_id in ordered:
+            hit = by_id.get(chunk_id)
+            if hit is None:  # found by wording only
+                chunk = next(c for c in chunks if c["id"] == chunk_id)
+                hit = dict(chunk, distance=1.0)
+            out.append(hit)
+        return out

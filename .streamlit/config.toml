@@ -1,0 +1,17 @@
+[server]
+address = "127.0.0.1"
+maxUploadSize = 20
+fileWatcherType = "none"
+
+[browser]
+gatherUsageStats = false
+
+[client]
+toolbarMode = "viewer"
+
+[theme]
+primaryColor = "#494CC6"
+backgroundColor = "#FFFFFF"
+secondaryBackgroundColor = "#F1F3FA"
+textColor = "#172345"
+font = "sans serif"

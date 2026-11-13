@@ -78,6 +78,17 @@ class Viva(Record):
     questions: list[VivaItem] = Field(min_length=1, max_length=15)
 
 
+class Evaluation(Record):
+    """Advisory feedback on a typed viva answer. Scores are model judgments, not measurements of ability."""
+
+    correctness: int = Field(ge=0, le=5)
+    depth: int = Field(ge=0, le=5)
+    clarity: int = Field(ge=0, le=5)
+    feedback: ShortText = Field(max_length=600)
+    next_step: ShortText = Field(max_length=250)
+    source_pages: list[int] = Field(min_length=1)
+
+
 Data = TypeVar("Data")
 
 

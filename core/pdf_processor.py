@@ -6,7 +6,7 @@ from pathlib import Path
 import pymupdf
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-from config import CHUNK_OVERLAP, CHUNK_SIZE, MAX_UPLOAD_MB
+from config import CHUNK_OVERLAP, CHUNK_SIZE, MAX_PAGES, MAX_TEXT_CHARS, MAX_UPLOAD_MB
 
 HEADING = re.compile(
     r"^(?:\d+(?:\.\d+)*\.?\s+)?"
@@ -47,9 +47,15 @@ def extract_paper(data: bytes, filename: str) -> Paper:
             if pdf.needs_pass:
                 raise ValueError("This PDF is password-protected. Upload an unlocked copy.")
             page_count = len(pdf)
+            if page_count > MAX_PAGES:
+                raise ValueError(f"Please use a paper with {MAX_PAGES} pages or fewer.")
             section = ""
+            characters = 0
             for page in pdf:
                 text = page.get_text(sort=True).replace("\x00", "")
+                characters += len(text)
+                if characters > MAX_TEXT_CHARS:
+                    raise ValueError("This document contains too much text. Use a shorter paper.")
                 sections = []
                 lines = []
                 for line in text.splitlines():

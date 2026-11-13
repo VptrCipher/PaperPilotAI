@@ -16,6 +16,11 @@ from core.pdf_processor import Paper
 ENCODE_LOCK = Lock()
 
 
+def embedding_weights_present() -> bool:
+    """True when the pinned MiniLM weights were set up (python -m sample_data.setup_embeddings)."""
+    return (EMBEDDING_DIR / "model.safetensors").is_file()
+
+
 def load_embedder():
     from sentence_transformers import SentenceTransformer
 
@@ -27,8 +32,9 @@ def load_embedder():
 class PaperIndex:
     """One active collection per UI session, held in Chroma's in-memory client."""
 
-    def __init__(self, embedder):
+    def __init__(self, embedder, mode="semantic"):
         self.embedder = embedder
+        self.mode = mode  # "semantic" (MiniLM) or "lexical" (offline, no download)
         self.client = chromadb.EphemeralClient(Settings(anonymized_telemetry=False))
         self.paper = None
         self.collection = None

@@ -4,6 +4,14 @@
 
 PaperPilot AI helps students turn one text-based research paper into a summary, concept explanations, a presentation, and viva practice. It shows the PDF excerpts used for each result and the routing and retrieval actions that led to it.
 
+## Workspace preview
+
+DesignForge generates the ember workspace from `ui-brief.json`. Streamlit loads the generated layout, theme, and styles from `ui/` while keeping the existing PDF, Ollama, retrieval, and export controls.
+
+![Desktop workspace](ui/desktop.png)
+
+[View the mobile workspace](ui/mobile.png).
+
 ## Quick start
 
 Use Python 3.12 (the version used for Windows verification). Run these commands from the directory containing `app.py`.

@@ -10,6 +10,8 @@ EMBEDDING_DIR = Path(os.getenv("HF_HOME", Path.home() / ".cache" / "huggingface"
     "paperpilot-MiniLM-" + EMBEDDING_REVISION
 )
 MAX_UPLOAD_MB = int(os.getenv("PAPERPILOT_MAX_UPLOAD_MB", "20"))
+MAX_PAGES = 150
+MAX_TEXT_CHARS = 1_000_000
 CHUNK_SIZE = 1000
 CHUNK_OVERLAP = 150
 MAX_REQUEST_CHARS = 1200

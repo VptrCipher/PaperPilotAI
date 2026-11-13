@@ -19,8 +19,8 @@
 <body>
   <a class="skip-link" href="#main-content">Skip to main content</a>
   <div class="bs-env" aria-hidden="true"><span class="bs-glow bs-glow-a"></span><span class="bs-glow bs-glow-b"></span><span class="bs-grain"></span></div>
-  <div class="bs-meter" aria-hidden="true"><span></span></div>
-  <header data-g-headline="wipe" data-g-reveal="fade-up" data-g-hover="border-trace" data-g-button="ring" data-g-depth="hero-perspective" data-g-marquee="tilted-band" data-g-backdrop="wave-lines" data-g-shape="sharp" data-g-surface="gradient" data-g-word="duotone" data-g-align="end" class="site-header bs-header" data-header>
+  <div class="bs-meter" aria-hidden="true"><span></span></div><div class="gx-cursor gx-cursor--trail-ring" data-cursor aria-hidden="true"></div>
+  <header data-g-headline="blur" data-g-reveal="blur-in" data-g-hover="fill-sweep" data-g-button="ring" data-g-depth="scroll-rotate" data-g-marquee="straight" data-g-backdrop="grid-floor" data-g-shape="sharp" data-g-surface="solid" data-g-word="gradient" data-g-align="center" class="site-header bs-header" data-header>
     <div class="bs-container nav-inner">
       <a class="brand-mark bs-wordmark" href="#overview"><span class="bs-mark" aria-hidden="true">P</span><span>PaperPilot AI</span></a>
       <nav aria-label="Primary">
@@ -35,9 +35,9 @@
       </nav>
     </div>
   </header>
-  <main data-g-headline="wipe" data-g-reveal="fade-up" data-g-hover="border-trace" data-g-button="ring" data-g-depth="hero-perspective" data-g-marquee="tilted-band" data-g-backdrop="wave-lines" data-g-shape="sharp" data-g-surface="gradient" data-g-word="duotone" data-g-align="end" id="main-content" tabindex="-1" class="bs-main pr-main">
+  <main data-g-headline="blur" data-g-reveal="blur-in" data-g-hover="fill-sweep" data-g-button="ring" data-g-depth="scroll-rotate" data-g-marquee="straight" data-g-backdrop="grid-floor" data-g-shape="sharp" data-g-surface="solid" data-g-word="gradient" data-g-align="center" id="main-content" tabindex="-1" class="bs-main pr-main">
     <section id="overview" class="bs-hero bs-hero--product-stage pr-hero" aria-labelledby="hero-title" data-archetype="brand-product" data-layout-system="asymmetric-12" data-hero>
-      <canvas class="gx-backdrop" data-backdrop="wave-lines" aria-hidden="true"></canvas>
+      <canvas class="gx-backdrop" data-backdrop="grid-floor" aria-hidden="true"></canvas>
       <div class="bs-container pr-hero-inner">
         <div class="bs-hero-copy pr-hero-copy">
           <p class="bs-kicker" data-reveal><span class="bs-kicker-dot" aria-hidden="true"></span>Paper-to-presentation &amp; viva agent</p>
@@ -402,7 +402,7 @@ speciﬁc technology, standard, or implementation-solution; moreover, the Princi
             </li>
             <li class="bs-step pr-step" data-step data-reveal style="--r:1">
               <span class="bs-step-n">5</span>
-              <div><h3 class="pr-h4">Decide whether to search</h3><p class="muted">The model chooses to retrieve new excerpts, reuse the ones it has, or ask you to clarify. A thin result triggers one more targeted search.</p></div>
+              <div><h3 class="pr-h4">Decide whether to search</h3><p class="muted">The model chooses to retrieve new excerpts, reuse the ones it has, or ask you to clarify. Retrieval fuses meaning with exact wording, and a thin result triggers one more targeted search.</p></div>
             </li>
             <li class="bs-step pr-step" data-step data-reveal style="--r:2">
               <span class="bs-step-n">6</span>
@@ -432,7 +432,7 @@ speciﬁc technology, standard, or implementation-solution; moreover, the Princi
           <li class="bs-card" data-reveal data-tilt style="--r:1"><div class="bs-card-inner">
             <span class="bs-card-n" aria-hidden="true">02</span>
             <h3 class="pr-h4 pr-h4--card">Two ways to search</h3>
-            <p class="muted">Semantic search uses the pinned MiniLM weights. The offline lexical index needs no download and matches shared words, so it is weaker on paraphrases.</p>
+            <p class="muted">Semantic search uses the pinned MiniLM weights and is combined with exact-word matching. The offline lexical index needs no download and matches shared words, so it is weaker on paraphrases.</p>
           </div></li>
           <li class="bs-card" data-reveal data-tilt style="--r:2"><div class="bs-card-inner">
             <span class="bs-card-n" aria-hidden="true">03</span>
@@ -457,7 +457,7 @@ speciﬁc technology, standard, or implementation-solution; moreover, the Princi
         <ol class="pr-limit-list">
           <li data-reveal style="--r:0"><span class="bs-mono" aria-hidden="true">01</span><div><h3 class="pr-h4">One paper at a time</h3><p class="muted">One active text-based paper per session. The index and the conversation history are temporary.</p></div></li>
           <li data-reveal style="--r:1"><span class="bs-mono" aria-hidden="true">02</span><div><h3 class="pr-h4">Text, not figures</h3><p class="muted">Figures, tables, formulas and complex reading order can lose meaning when text is extracted. A scanned PDF needs OCR first.</p></div></li>
-          <li data-reveal style="--r:2"><span class="bs-mono" aria-hidden="true">03</span><div><h3 class="pr-h4">Search can miss</h3><p class="muted">Semantic retrieval can miss relevant passages. If nothing useful turns up, name a section or a term.</p></div></li>
+          <li data-reveal style="--r:2"><span class="bs-mono" aria-hidden="true">03</span><div><h3 class="pr-h4">Search can still miss</h3><p class="muted">Semantic search is combined with exact-word matching, which reduces missed passages but does not remove them. If nothing useful turns up, name a section or a term.</p></div></li>
           <li data-reveal style="--r:0"><span class="bs-mono" aria-hidden="true">04</span><div><h3 class="pr-h4">A page is not proof</h3><p class="muted">Page validation confirms a page was given to the model, not that the answer is right. Read the excerpts to check the support.</p></div></li>
           <li data-reveal style="--r:1"><span class="bs-mono" aria-hidden="true">05</span><div><h3 class="pr-h4">Speed depends on the model</h3><p class="muted">How fast it runs, and how well the structured output holds, depend on the model you pick and your computer.</p></div></li>
           <li data-reveal style="--r:2"><span class="bs-mono" aria-hidden="true">06</span><div><h3 class="pr-h4">Feedback is advisory</h3><p class="muted">Viva scores come from the local model. They are not grades, and a cited page does not prove the feedback is right.</p></div></li>
@@ -501,7 +501,7 @@ python -m streamlit run app.py</code></pre>
       </div>
     </section>
   </main>
-  <footer data-g-headline="wipe" data-g-reveal="fade-up" data-g-hover="border-trace" data-g-button="ring" data-g-depth="hero-perspective" data-g-marquee="tilted-band" data-g-backdrop="wave-lines" data-g-shape="sharp" data-g-surface="gradient" data-g-word="duotone" data-g-align="end" class="site-footer bs-footer pr-footer">
+  <footer data-g-headline="blur" data-g-reveal="blur-in" data-g-hover="fill-sweep" data-g-button="ring" data-g-depth="scroll-rotate" data-g-marquee="straight" data-g-backdrop="grid-floor" data-g-shape="sharp" data-g-surface="solid" data-g-word="gradient" data-g-align="center" class="site-footer bs-footer pr-footer">
     <div class="bs-container">
       <div class="bs-footer-row">
         <nav aria-label="Secondary">

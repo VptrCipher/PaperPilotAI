@@ -134,7 +134,3 @@ The first command runs the offline suite: PDF parsing and limits, Chroma mechani
 - [Architecture](docs/ARCHITECTURE.md) · [Code walkthrough](docs/CODE_WALKTHROUGH.md) · [Project folder tree](docs/FILE_TREE.md)
 - [Project report](docs/PROJECT_REPORT.md) · [Demo guide](docs/DEMO_GUIDE.md) · [Viva guide](docs/VIVA_GUIDE.md)
 - [FAIR sample attribution](sample_data/README.md)
-
-## Credits
-
-The offline lexical index, typed viva feedback and the session report were inspired by [Paperloom Research Studio](https://github.com/SolvyrEryx/paperloom-research-studio) by Rahul J (MIT licence), rebuilt here for a local Ollama stack. The FAIR sample paper is attributed in `sample_data/README.md`.
